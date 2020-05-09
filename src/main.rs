@@ -1,4 +1,8 @@
-#![allow(dead_code, unused_variables, unused_parens, arithmetic_overflow)]
+// Turn off warnings while debugging, removing these
+#![allow(dead_code, unused_variables, unused_parens, unused_imports, arithmetic_overflow)]
+
+use std::fs::File;
+use std::io::Read;
 
 /*
     CHIP-8 Specification Notes
@@ -30,6 +34,8 @@
             - Sprites are comprised of 15 bytes of graphics making the max size of 8x15 pixels 
 
         - Each instruction is 2bytes wide with the data encoded directly in the instruction
+            - Instructions will be represented by an array of function pointers to their respective opcode
+            - Need to determine how to translate 2byte instruction into an index representing the opcode to call
 */
 
 struct Chip8Emulator<'a> {
@@ -52,12 +58,22 @@ impl<'a> Chip8Emulator<'a> {
 
     }
 
-    fn load_file(&mut self, file_path: String) {
+    fn load_rom(&mut self, file_path: String) {
+        // Load binary data from rom file into a buffer
+        let mut f = File::open(&file_path).expect("Specified rom file not found");
+        let metadata = std::fs::metadata(&file_path).expect("Unable to read rom file metadata");
+        let mut buffer = vec![0 as u8; metadata.len() as usize];
 
+        f.read(&mut buffer).expect("ERR: Buffer overflow occured while attempting to load rom file");
+
+        // Load the rom buffer into chip8 ram with the offset of 0x0200
+        for (pos, data) in buffer.iter().enumerate() {
+            self.cpu.memory[pos + 0x200] = *data
+        }
     }
 
     fn load_bytes(&mut self, bytes: [u8; 4096]) {
-
+        // Load direct bytes directly into memory.
     }
 
     fn reset(&mut self) {
@@ -82,7 +98,7 @@ struct Chip8<'a> {
     stack: [u16; 16],
     vram: [u8; 64 * 32], // TODO: Implement a 'Ram' struct to house the ram + read and write functionality
     instructions: [fn(&mut Chip8<'a>); 32],
-    opcode: u16
+    opcode: u16,
 }
 
 // Basic CPU functionality
@@ -127,7 +143,7 @@ impl<'a> Chip8<'a> {
     }
 
     fn execute(&mut self) {
-        println!("${:04x} {:04x}", self.program_counter, self.opcode);
+        println!("${:04x} {:04x}", self.program_counter, self.opcode);      
     }
 
     fn timers(&mut self) {
@@ -295,6 +311,6 @@ fn main() {
     let mut emulator = Chip8Emulator::new();
 
     emulator.initialize();
-    emulator.load_file("pong.ch8".to_string());
+    emulator.load_rom("./pong.ch8".to_string());
     emulator.run();
 }
