@@ -1,5 +1,4 @@
 use super::cpu::Chip8;
-use super::ram::Ram;
 use std::fs::File;
 use std::io::Read;
 

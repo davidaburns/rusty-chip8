@@ -1,4 +1,3 @@
-use super::ram::Ram;
 
 #[derive(Copy, Clone)]
 pub struct Chip8<'a> {
