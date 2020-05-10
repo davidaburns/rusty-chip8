@@ -46,12 +46,19 @@ impl<'a> Chip8<'a> {
     }
 
     pub fn _5xy0(&mut self) -> ProgramCounterOp {
-        print!("_4xnn");
+        print!("_5xy0");
         ProgramCounterOp::Next
     }
 
     pub fn _6xnn(&mut self) -> ProgramCounterOp {
         print!("_6xnn");
+
+        let nibbles = self.deconstruct_opcode();
+        let x = nibbles.1 as usize;
+        let nn = ((nibbles.2) << 4 | nibbles.3 as u16) as u8;
+
+        self.v[x] = nn;
+
         ProgramCounterOp::Next
     }
 

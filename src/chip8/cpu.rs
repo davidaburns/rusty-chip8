@@ -10,16 +10,16 @@ pub enum ProgramCounterOp {
 pub struct Chip8<'a>  {
     pub memory: Option<&'a [u8]>,
     pub vram: Option<&'a [u8]>,
-    v: [u8; 16],
-    i: u16,
-    delay_timer: u8,
-    sound_timer: u8,
-    program_counter: usize,
-    stack_pointer: u8,
-    stack: [u16; 16],
+    pub v: [u8; 16],
+    pub i: u16,
+    pub delay_timer: u8,
+    pub sound_timer: u8,
+    pub program_counter: usize,
+    pub stack_pointer: u8,
+    pub stack: [u16; 16],
 
     // Emulator specific
-    opcode: u16,
+    pub opcode: u16,
     opcode_inst: Chip8Instruction<'a>,
 }
 
@@ -71,14 +71,7 @@ impl<'a> Chip8<'a> {
     }
 
     pub fn decode(&mut self) {
-        let nibbles = (
-            (self.opcode & 0xF000) >> 12 as u8,
-            (self.opcode & 0x0F00) >> 8 as u8,
-            (self.opcode & 0x00F0) >> 4 as u8,
-            (self.opcode & 0x000F) as u8,
-        );
-
-        match nibbles { 
+        match self.deconstruct_opcode() { 
             (0x00, 0x00, 0x0e, 0x00) => self.opcode_inst = Chip8::_00e0,
             (0x00, 0x00, 0x0e, 0x0e) => self.opcode_inst = Chip8::_00ee,
             (0x01, _, _, _) =>          self.opcode_inst = Chip8::_1nnn,
@@ -115,6 +108,13 @@ impl<'a> Chip8<'a> {
             (0x0f, _, 0x06, 0x05) =>    self.opcode_inst = Chip8::_fx65,
             _ => self.opcode_inst = Chip8::noop,
         };
+    }
+
+    pub fn deconstruct_opcode(&self) -> (u16, u16, u16, u8) {
+        ((self.opcode & 0xF000) >> 12 as u8,
+        (self.opcode & 0x0F00) >> 8 as u8,
+        (self.opcode & 0x00F0) >> 4 as u8,
+        (self.opcode & 0x000F) as u8,)
     }
 
     pub fn execute(&mut self) {
