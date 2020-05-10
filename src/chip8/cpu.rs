@@ -1,6 +1,13 @@
+use super::instructions::Chip8Instruction;
+
+pub enum ProgramCounterOp {
+    Next,
+    SkipNext,
+    Jump(usize)
+}
 
 #[derive(Copy, Clone)]
-pub struct Chip8<'a> {
+pub struct Chip8<'a>  {
     pub memory: Option<&'a [u8]>,
     pub vram: Option<&'a [u8]>,
     v: [u8; 16],
@@ -12,10 +19,8 @@ pub struct Chip8<'a> {
     stack: [u16; 16],
 
     // Emulator specific
-    instructions: [fn(&mut Chip8<'a>); 36],
     opcode: u16,
-    opcode_index: usize,
-    increment_program_counter: bool,
+    opcode_inst: Chip8Instruction<'a>,
 }
 
 // CPU functionality
@@ -31,10 +36,8 @@ impl<'a> Chip8<'a> {
             program_counter: 0x0000,
             stack_pointer: 0x00,
             stack: [0x0000; 16],
-            instructions: [Chip8::noop; 36],
             opcode: 0x0000,
-            opcode_index: 0,
-            increment_program_counter: true,
+            opcode_inst: Chip8::noop
         }
     }
 
@@ -47,50 +50,10 @@ impl<'a> Chip8<'a> {
         self.stack_pointer = 0x00;
         self.stack = [0x000; 16];
         self.opcode = 0x0000;
-        self.opcode_index = 0;
-        self.increment_program_counter = true;
-
-        self.instructions = [
-            Chip8::noop,
-            Chip8::_0nnn,
-            Chip8::_00e0,
-            Chip8::_00ee,
-            Chip8::_1nnn,
-            Chip8::_2nnn,
-            Chip8::_3xnn,
-            Chip8::_4xnn,
-            Chip8::_5xy0,
-            Chip8::_6xnn,
-            Chip8::_7xnn,
-            Chip8::_8xy0,
-            Chip8::_8xy1,
-            Chip8::_8xy2,
-            Chip8::_8xy3,
-            Chip8::_8xy4,
-            Chip8::_8xy5,
-            Chip8::_8xy6,
-            Chip8::_8xy7,
-            Chip8::_8xye,
-            Chip8::_9xy0,
-            Chip8::_annn,
-            Chip8::_bnnn,
-            Chip8::_cxnn,
-            Chip8::_dxyn,
-            Chip8::_ex9e,
-            Chip8::_exa1,
-            Chip8::_fx07,
-            Chip8::_fx0a,
-            Chip8::_fx15,
-            Chip8::_fx18,
-            Chip8::_fx1e,
-            Chip8::_fx29,
-            Chip8::_fx33,
-            Chip8::_fx55,
-            Chip8::_fx65,
-        ]
+        self.opcode_inst = Chip8::noop;
     }
 
-    pub fn cycle(&mut self) {
+    pub fn cycle(&mut self) { 
         self.fetch();
         self.decode();
         self.execute();
@@ -108,70 +71,66 @@ impl<'a> Chip8<'a> {
     }
 
     pub fn decode(&mut self) {
-        // TODO: Convert this to a single match with pattern matich on each nibble of the opcode
-        match (self.opcode & 0xF000) {
-            0x0 => match (self.opcode & 0x00FF) {
-                0x0000 => self.opcode_index = 0,
-                0x00E0 => self.opcode_index = 2,
-                0x00EE => self.opcode_index = 3,
-                _ => self.opcode_index = 1,
-            },
-            0x1000 => self.opcode_index = 4,
-            0x2000 => self.opcode_index = 5,
-            0x3000 => self.opcode_index = 6,
-            0x4000 => self.opcode_index = 7,
-            0x5000 => self.opcode_index = 8,
-            0x6000 => self.opcode_index = 9,
-            0x7000 => self.opcode_index = 10,
-            0x8000 => match (self.opcode & 0x000F) {
-                0x0000 => self.opcode_index = 11,
-                0x0001 => self.opcode_index = 12,
-                0x0002 => self.opcode_index = 13,
-                0x0003 => self.opcode_index = 14,
-                0x0004 => self.opcode_index = 15,
-                0x0005 => self.opcode_index = 16,
-                0x0006 => self.opcode_index = 17,
-                0x0007 => self.opcode_index = 18,
-                0x000E => self.opcode_index = 19,
-                _ => self.opcode_index = 0,
-            },
-            0x9000 => self.opcode_index = 20,
-            0xA000 => self.opcode_index = 21,
-            0xB000 => self.opcode_index = 22,
-            0xC000 => self.opcode_index = 23,
-            0xD000 => self.opcode_index = 24,
-            0xE000 => match (self.opcode & 0x00FF) {
-                0x009E => self.opcode_index = 25,
-                0x00A1 => self.opcode_index = 26,
-                _ => self.opcode_index = 0,
-            },
-            0xF000 => match (self.opcode & 0x00FF) {
-                0x0007 => self.opcode_index = 27,
-                0x000A => self.opcode_index = 28,
-                0x0015 => self.opcode_index = 29,
-                0x0018 => self.opcode_index = 30,
-                0x001E => self.opcode_index = 31,
-                0x0029 => self.opcode_index = 32,
-                0x0033 => self.opcode_index = 33,
-                0x0055 => self.opcode_index = 34,
-                0x0065 => self.opcode_index = 35,
-                _ => self.opcode_index = 0,
-            },
-            _ => self.opcode_index = 0,
-        }
+        let nibbles = (
+            (self.opcode & 0xF000) >> 12 as u8,
+            (self.opcode & 0x0F00) >> 8 as u8,
+            (self.opcode & 0x00F0) >> 4 as u8,
+            (self.opcode & 0x000F) as u8,
+        );
+
+        match nibbles { 
+            (0x00, 0x00, 0x0e, 0x00) => self.opcode_inst = Chip8::_00e0,
+            (0x00, 0x00, 0x0e, 0x0e) => self.opcode_inst = Chip8::_00ee,
+            (0x01, _, _, _) =>          self.opcode_inst = Chip8::_1nnn,
+            (0x02, _, _, _) =>          self.opcode_inst = Chip8::_2nnn,
+            (0x03, _, _, _) =>          self.opcode_inst = Chip8::_3xnn,
+            (0x04, _, _, _) =>          self.opcode_inst = Chip8::_4xnn,
+            (0x05, _, _, 0x00) =>       self.opcode_inst = Chip8::_5xy0,
+            (0x06, _, _, _) =>          self.opcode_inst = Chip8::_6xnn,
+            (0x07, _, _, _) =>          self.opcode_inst = Chip8::_7xnn,
+            (0x08, _, _, 0x00) =>       self.opcode_inst = Chip8::_8xy0,
+            (0x08, _, _, 0x01) =>       self.opcode_inst = Chip8::_8xy1,
+            (0x08, _, _, 0x02) =>       self.opcode_inst = Chip8::_8xy2,
+            (0x08, _, _, 0x03) =>       self.opcode_inst = Chip8::_8xy3,
+            (0x08, _, _, 0x04) =>       self.opcode_inst = Chip8::_8xy4,
+            (0x08, _, _, 0x05) =>       self.opcode_inst = Chip8::_8xy5,
+            (0x08, _, _, 0x06) =>       self.opcode_inst = Chip8::_8xy6,
+            (0x08, _, _, 0x07) =>       self.opcode_inst = Chip8::_8xy7,
+            (0x08, _, _, 0x0e) =>       self.opcode_inst = Chip8::_8xye,
+            (0x09, _, _, 0x00) =>       self.opcode_inst = Chip8::_9xy0,
+            (0x0a, _, _, _) =>          self.opcode_inst = Chip8::_annn,
+            (0x0b, _, _, _) =>          self.opcode_inst = Chip8::_bnnn,
+            (0x0c, _, _, _) =>          self.opcode_inst = Chip8::_cxnn,
+            (0x0d, _, _, _) =>          self.opcode_inst = Chip8::_dxyn,
+            (0x0e, _, 0x09, 0x0e) =>    self.opcode_inst = Chip8::_ex9e,
+            (0x0e, _, 0x0a, 0x01) =>    self.opcode_inst = Chip8::_exa1,
+            (0x0f, _, 0x00, 0x07) =>    self.opcode_inst = Chip8::_fx07,
+            (0x0f, _, 0x00, 0x0a) =>    self.opcode_inst = Chip8::_fx0a,
+            (0x0f, _, 0x01, 0x05) =>    self.opcode_inst = Chip8::_fx15,
+            (0x0f, _, 0x01, 0x08) =>    self.opcode_inst = Chip8::_fx18,
+            (0x0f, _, 0x01, 0x0e) =>    self.opcode_inst = Chip8::_fx1e,
+            (0x0f, _, 0x02, 0x09) =>    self.opcode_inst = Chip8::_fx29,
+            (0x0f, _, 0x03, 0x03) =>    self.opcode_inst = Chip8::_fx33,
+            (0x0f, _, 0x05, 0x05) =>    self.opcode_inst = Chip8::_fx55,
+            (0x0f, _, 0x06, 0x05) =>    self.opcode_inst = Chip8::_fx65,
+            _ => self.opcode_inst = Chip8::noop,
+        };
     }
 
     pub fn execute(&mut self) {
-        print!("${:04x} {:04x} [{}] ",self.program_counter, self.opcode, self.opcode_index);
-        self.instructions[self.opcode_index](self);
+        print!("${:04x} 0x{:04x} ",self.program_counter, self.opcode);
 
-        // Increment program counter if there has been no jumps or subroutine calls
-        // TODO: Add flag to determine if jump/subroutine call has occured
-        if (self.program_counter + 2 > 0x0FFF) {
-            self.program_counter = 0x200;
+        let pc_op = (self.opcode_inst)(self);
+        if (self.program_counter + 2 > 4095) {
+            self.program_counter = 0x0200;
         } else {
-            self.program_counter += 2;
+            match pc_op {
+                ProgramCounterOp::Next => self.program_counter += 2,
+                ProgramCounterOp::SkipNext => self.program_counter += 4,
+                ProgramCounterOp::Jump(addr) => self.program_counter = addr
+            }
         }
+
     }
 
     pub fn timers(&mut self) {
