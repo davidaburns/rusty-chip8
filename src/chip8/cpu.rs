@@ -1,26 +1,28 @@
+use super::ram::Ram;
+
 pub struct Chip8<'a> {
-    pub memory:  [u8; 4096], // TODO: Implement a 'Ram' struct to house the ram + read and write functionality
-    pub vram: [u8; 64 * 32], // TODO: Implement a 'Ram' struct to house the ram + read and write functionality
-    pub v: [u8; 16],
-    pub i: u16,
-    pub delay_timer: u8,
-    pub sound_timer: u8,
-    pub program_counter: usize,
-    pub stack_pointer: u8,
-    pub stack: [u16; 16],
+    pub memory:  Option<&'a mut Ram>, 
+    pub vram: Option<&'a mut Ram>,
+    v: [u8; 16],
+    i: u16,
+    delay_timer: u8,
+    sound_timer: u8,
+    program_counter: usize,
+    stack_pointer: u8,
+    stack: [u16; 16],
     
     // Emulator specific
-    pub instructions: [fn(&mut Chip8<'a>); 36],
-    pub opcode: u16,
-    pub opcode_index: usize,
-    pub increment_program_counter: bool
+    instructions: [fn(&mut Chip8<'a>); 36],
+    opcode: u16,
+    opcode_index: usize,
+    increment_program_counter: bool
 }
 
 // CPU functionality
 impl<'a> Chip8<'a> {
     pub fn new() -> Chip8<'a> {
         Chip8 {
-            memory: [0x00; 4096],
+            memory: None,
             v: [0x00; 16],
             i: 0x0000,
             delay_timer: 0,
@@ -28,7 +30,7 @@ impl<'a> Chip8<'a> {
             program_counter: 0x0000,
             stack_pointer: 0x00,
             stack: [0x0000; 16],
-            vram: [0x00; 64 * 32],
+            vram: None,
             instructions: [Chip8::noop; 36],
             opcode: 0x0000,
             opcode_index: 0,
@@ -81,10 +83,13 @@ impl<'a> Chip8<'a> {
 
     pub fn fetch(&mut self) {
         let pc = self.program_counter;
-        self.opcode = ((self.memory[pc] as usize) << 8 | self.memory[pc + 1] as usize) as u16;
+        let mem = self.memory.as_deref().unwrap();
+
+        self.opcode = ((mem.read(pc) as usize) << 8 | mem.read(pc + 1) as usize) as u16;
     }
 
     pub fn decode(&mut self) {
+        // TODO: Convert this to a single match with pattern matich on each nibble of the opcode
         match (self.opcode & 0xF000) {
             0x0 => {
             match (self.opcode & 0x00FF) {
