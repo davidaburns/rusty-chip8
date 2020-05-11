@@ -6,10 +6,9 @@ pub enum ProgramCounterOp {
     Jump(usize)
 }
 
-#[derive(Copy, Clone)]
 pub struct Chip8<'a>  {
-    pub memory: Option<&'a [u8]>,
-    pub vram: Option<&'a [u8]>,
+    pub memory: Option<&'a mut [u8]>,
+    pub vram: Option<&'a mut [u8]>,
     pub v: [u8; 16],
     pub i: u16,
     pub delay_timer: u8,
@@ -17,8 +16,6 @@ pub struct Chip8<'a>  {
     pub program_counter: usize,
     pub stack_pointer: u8,
     pub stack: [u16; 16],
-
-    // Emulator specific
     pub opcode: u16,
     opcode_inst: Chip8Instruction<'a>,
 }
@@ -143,6 +140,12 @@ impl<'a> Chip8<'a> {
             if (self.sound_timer == 0) {
                 print!(" BEEP");
             }
+        }
+    }
+
+    pub fn clear_vram(mut self, vram: &'a mut [u8]) {
+        for pixel in vram.iter_mut() {
+            *pixel = 0x00;
         }
     }
 }

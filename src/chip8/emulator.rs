@@ -2,7 +2,6 @@ use super::cpu::Chip8;
 use std::fs::File;
 use std::io::Read;
 
-#[derive(Copy, Clone)]
 pub struct Emulator<'a> {
     cpu: Chip8<'a>,
     memory: [u8; 4096],
