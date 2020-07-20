@@ -18,12 +18,7 @@ impl<'a> Chip8<'a> {
     // CLS: Clear the screen
     pub fn _00e0(&mut self) -> ProgramCounterOp {
         print!("_00e0");
-        
-        let vram_ref = self.vram.as_deref_mut();
-        for pixel in vram_ref.unwrap().iter_mut() {
-            *pixel = 0x00;
-        }
-
+        self.bus.vram.clear();
         ProgramCounterOp::Next
     }
  

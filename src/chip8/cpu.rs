@@ -1,4 +1,5 @@
 use super::instructions::Chip8Instruction;
+use super::bus::Bus;
 
 pub enum ProgramCounterOp {
     Next,
@@ -7,8 +8,7 @@ pub enum ProgramCounterOp {
 }
 
 pub struct Chip8<'a>  {
-    pub memory: Option<&'a mut [u8]>,
-    pub vram: Option<&'a mut [u8]>,
+    pub bus: Bus,
     pub v: [u8; 16],
     pub i: u16,
     pub delay_timer: u8,
@@ -17,6 +17,7 @@ pub struct Chip8<'a>  {
     pub stack_pointer: u8,
     pub stack: [u16; 16],
     pub opcode: u16,
+    
     opcode_inst: Chip8Instruction<'a>,
 }
 
@@ -24,8 +25,7 @@ pub struct Chip8<'a>  {
 impl<'a> Chip8<'a> {
     pub fn new() -> Chip8<'a> {
         Chip8 {
-            memory: None,
-            vram: None,
+            bus: Bus::new(),
             v: [0x00; 16],
             i: 0x0000,
             delay_timer: 0,
@@ -62,9 +62,7 @@ impl<'a> Chip8<'a> {
     pub fn fetch(&mut self) {
         // TODO: Do error checking to make sure that memory has been initialized by the emulator
         let pc = self.program_counter;
-        let mem = self.memory.as_deref().unwrap();
-
-        self.opcode = ((mem[pc] as usize) << 8 | mem[pc + 1] as usize) as u16;
+        self.opcode = ((self.bus.ram.read(pc) as usize) << 8 | (self.bus.ram.read(pc + 1) as usize)) as u16;
     }
 
     pub fn decode(&mut self) {
@@ -140,12 +138,6 @@ impl<'a> Chip8<'a> {
             if (self.sound_timer == 0) {
                 print!(" BEEP");
             }
-        }
-    }
-
-    pub fn clear_vram(mut self, vram: &'a mut [u8]) {
-        for pixel in vram.iter_mut() {
-            *pixel = 0x00;
         }
     }
 }

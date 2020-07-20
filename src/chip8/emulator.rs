@@ -31,15 +31,12 @@ impl<'a> Emulator<'a> {
 
         // Load the rom buffer into chip8 ram with the offset of 0x0200
         for (pos, data) in buffer.iter().enumerate() {
-            self.memory[0x0200 + pos] = *data;
+            self.cpu.bus.ram.write(0x0200 + pos, *data);
         }
     }
 
     pub fn run(&'a mut self) {
         self.cpu.initialize();
-        self.cpu.memory = Some(&mut self.memory);
-        self.cpu.vram = Some(&mut self.vram);
-
         loop {
             self.cpu.cycle();
         }
