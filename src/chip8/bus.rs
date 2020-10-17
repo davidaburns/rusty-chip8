@@ -1,18 +1,17 @@
-use super::ram::Ram;
-use super::vram::VRam;
+use super::memory::Memory;
 use super::keyboard::Keyboard;
 
 pub struct Bus {
-    pub ram: Ram,
-    pub vram: VRam,
+    pub ram: Memory,
+    pub vram: Memory,
     pub keyboard: Keyboard
 }
 
 impl Bus {
     pub fn new() -> Bus {
         Bus {
-            ram: Ram::new(),
-            vram: VRam::new(),
+            ram: Memory::new(4096),
+            vram: Memory::new(64 * 32),
             keyboard: Keyboard::new()
         }
     }

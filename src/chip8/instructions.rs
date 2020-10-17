@@ -18,6 +18,7 @@ impl<'a> Chip8<'a> {
     // CLS: Clear the screen
     pub fn _00e0(&mut self) -> ProgramCounterOp {
         print!("_00e0");
+        
         self.bus.vram.clear();
         ProgramCounterOp::Next
     }
