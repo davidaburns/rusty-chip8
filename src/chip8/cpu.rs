@@ -1,3 +1,4 @@
+use super::opcode::Opcode;
 use super::instructions::Chip8Instruction;
 use super::bus::Bus;
 
@@ -14,10 +15,9 @@ pub struct Chip8<'a>  {
     pub delay_timer: u8,
     pub sound_timer: u8,
     pub program_counter: usize,
-    pub stack_pointer: u8,
-    pub stack: [u16; 16],
-    pub opcode: u16,
-    
+    pub stack_pointer: usize,
+    pub stack: [usize; 16],
+    pub opcode: Option<Opcode>,
     opcode_inst: Chip8Instruction<'a>,
 }
 
@@ -33,7 +33,7 @@ impl<'a> Chip8<'a> {
             program_counter: 0x0000,
             stack_pointer: 0x00,
             stack: [0x0000; 16],
-            opcode: 0x0000,
+            opcode: Option::None,
             opcode_inst: Chip8::noop
         }
     }
@@ -46,7 +46,7 @@ impl<'a> Chip8<'a> {
         self.program_counter = 0x0200;
         self.stack_pointer = 0x00;
         self.stack = [0x000; 16];
-        self.opcode = 0x0000;
+        self.opcode = Option::None;
         self.opcode_inst = Chip8::noop;
     }
 
@@ -60,22 +60,23 @@ impl<'a> Chip8<'a> {
     }
 
     pub fn fetch(&mut self) {
-        // TODO: Do error checking to make sure that memory has been initialized by the emulator
         let pc = self.program_counter;
-        self.opcode = ((self.bus.ram.read(pc) as usize) << 8 | (self.bus.ram.read(pc + 1) as usize)) as u16;
+        let op = ((self.bus.ram.read(pc) as usize) << 8 | (self.bus.ram.read(pc + 1) as usize)) as u16;
+
+        self.opcode = Some(Opcode::new(op));
     }
 
     pub fn decode(&mut self) {
-        match self.deconstruct_opcode() { 
+        match self.opcode.unwrap().nibbles { 
             (0x00, 0x00, 0x0e, 0x00) => self.opcode_inst = Chip8::_00e0,
             (0x00, 0x00, 0x0e, 0x0e) => self.opcode_inst = Chip8::_00ee,
             (0x01, _, _, _) =>          self.opcode_inst = Chip8::_1nnn,
             (0x02, _, _, _) =>          self.opcode_inst = Chip8::_2nnn,
-            (0x03, _, _, _) =>          self.opcode_inst = Chip8::_3xnn,
-            (0x04, _, _, _) =>          self.opcode_inst = Chip8::_4xnn,
+            (0x03, _, _, _) =>          self.opcode_inst = Chip8::_3xkk,
+            (0x04, _, _, _) =>          self.opcode_inst = Chip8::_4xkk,
             (0x05, _, _, 0x00) =>       self.opcode_inst = Chip8::_5xy0,
-            (0x06, _, _, _) =>          self.opcode_inst = Chip8::_6xnn,
-            (0x07, _, _, _) =>          self.opcode_inst = Chip8::_7xnn,
+            (0x06, _, _, _) =>          self.opcode_inst = Chip8::_6xkk,
+            (0x07, _, _, _) =>          self.opcode_inst = Chip8::_7xkk,
             (0x08, _, _, 0x00) =>       self.opcode_inst = Chip8::_8xy0,
             (0x08, _, _, 0x01) =>       self.opcode_inst = Chip8::_8xy1,
             (0x08, _, _, 0x02) =>       self.opcode_inst = Chip8::_8xy2,
@@ -88,7 +89,7 @@ impl<'a> Chip8<'a> {
             (0x09, _, _, 0x00) =>       self.opcode_inst = Chip8::_9xy0,
             (0x0a, _, _, _) =>          self.opcode_inst = Chip8::_annn,
             (0x0b, _, _, _) =>          self.opcode_inst = Chip8::_bnnn,
-            (0x0c, _, _, _) =>          self.opcode_inst = Chip8::_cxnn,
+            (0x0c, _, _, _) =>          self.opcode_inst = Chip8::_cxkk,
             (0x0d, _, _, _) =>          self.opcode_inst = Chip8::_dxyn,
             (0x0e, _, 0x09, 0x0e) =>    self.opcode_inst = Chip8::_ex9e,
             (0x0e, _, 0x0a, 0x01) =>    self.opcode_inst = Chip8::_exa1,
@@ -105,17 +106,11 @@ impl<'a> Chip8<'a> {
         };
     }
 
-    pub fn deconstruct_opcode(&self) -> (u16, u16, u16, u8) {
-        ((self.opcode & 0xF000) >> 12 as u8,
-        (self.opcode & 0x0F00) >> 8 as u8,
-        (self.opcode & 0x00F0) >> 4 as u8,
-        (self.opcode & 0x000F) as u8,)
-    }
-
     pub fn execute(&mut self) {
-        print!("${:04x} 0x{:04x} ",self.program_counter, self.opcode);
+        let opcode = self.opcode.unwrap();
+        print!("${:04x} 0x{:04x} ",self.program_counter, opcode.op);
 
-        let pc_op = (self.opcode_inst)(self);
+        let pc_op = (self.opcode_inst)(self, &opcode);
         if (self.program_counter + 2 > 4095) {
             self.program_counter = 0x0200;
         } else {

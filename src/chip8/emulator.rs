@@ -4,16 +4,12 @@ use std::io::Read;
 
 pub struct Emulator<'a> {
     cpu: Chip8<'a>,
-    memory: [u8; 4096],
-    vram: [u8; 64 * 32],
 }
 
 impl<'a> Emulator<'a> {
     pub fn new() -> Emulator<'a> {
         Emulator {
-            cpu: Chip8::new(),
-            memory: [0x00; 4096],
-            vram: [0x00; 64 * 32],
+            cpu: Chip8::new()
         }
     }
 

@@ -44,6 +44,7 @@
 
 - 00ee - RET
   - Return from subroutine
+  - Set program counter to the addr at top of the stack subtract 1 from stack pointer
 
 - 1nnn - JP addr
   - Jump to location at nnn
@@ -58,7 +59,7 @@
   - Compares register Vx to kk, and if they are equal, increments the program counter by 2
 
 - 4xkk - SNE Vx, byte
-  - Skip next instruction if Vx != kk
+  - Skip next instruction if Vx != nn
   - Compare register Vx to kk, if not equal, increment program counter by 2
 
 - 5xy0 - SE Vx, Vy
@@ -66,12 +67,12 @@
   - Compare Vx to Vy, if they are equal, increment program counter by 2
 
 - 6xkk - LD Vx, byte
-  - Set Vx = kk
-  - Put value kk into register Vx
+  - Set Vx = nn
+  - Put value nn into register Vx
 
 - 7xkk - ADD Vx, byte
-  - Set Vx = Vx + kk
-  - Add the value kk to value of register Vx, then store in Vx
+  - Set Vx = Vx + nn
+  - Add the value nn to value of register Vx, then store in Vx
 
 - 8xy0 - LD Vx, Vy
   - Set Vx = Vy
@@ -122,8 +123,8 @@
   - Set the program counter to (nnn + value of register V0)
 
 - Cxkk - RND Vx, byte
-  - Set Vx = random byte AND kk
-  - Generate a random number from 0 to 255 which is then ANDed with kk. 
+  - Set Vx = random byte AND nn
+  - Generate a random number from 0 to 255 which is then ANDed with nn. 
 
 - Dxyn - DRW Vx, Vy, nibble
   - Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision

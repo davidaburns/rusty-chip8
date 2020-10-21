@@ -17,14 +17,36 @@ const FONT_GLYPHS: [[u8; 5]; 16] = [
     [0xF0, 0x80, 0xF0, 0x80, 0x80],
 ];
 
+#[derive(Debug, Copy, Clone)]
 pub struct Keyboard {
-
+    pub waiting: bool,
+    pub pressed: [u8; 16]
 }
 
 impl Keyboard {
     pub fn new() -> Keyboard {
         Keyboard {
-            
+            waiting: false,
+            pressed: [0x00; 16]
         }
+    }
+
+    pub fn is_pressed(&self, key: u8) -> bool {
+        for pressed_key in self.pressed.iter() {
+            if (*pressed_key == key) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn wait_for_key(&mut self) -> u8 {
+        let mut pressed_key: u8 = 0x00;
+        while self.waiting {
+            self.waiting = false;
+        }
+
+        pressed_key
     }
 }
