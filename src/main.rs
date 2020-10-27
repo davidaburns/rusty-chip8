@@ -5,14 +5,14 @@
     unused_parens,
     unused_imports,
     unused_mut,
+    unused_attributes,
     arithmetic_overflow
 )]
 
-pub mod chip8;
-use chip8::emulator::Emulator;
+pub mod app;
+use app::application;
 
 fn main() {
-    let mut emulator = Emulator::new();
-    emulator.load("./pong.ch8".to_string());
-    emulator.run();
+    let app = application::Application::new("ImGUI - Chip8 Emulator");
+    app.run();
 }

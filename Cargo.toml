@@ -1,5 +1,5 @@
 [package]
-name = "rust-learning"
+name = "rust-chip8"
 version = "0.1.0"
 authors = ["David A Burns <davidaaronburns@gmail.com>"]
 edition = "2018"
@@ -7,3 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 rand = "0.7.3"
+imgui = "0.5.0"
+imgui-glium-renderer = "0.5.0"
+imgui-winit-support = "0.5.0"
+glium = "0.27"
+clipboard = "0.5.0"
+image = "0.23.11"
