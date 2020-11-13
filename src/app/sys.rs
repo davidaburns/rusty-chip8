@@ -1,4 +1,5 @@
 use std::time::Instant;
+use std::marker::PhantomData;
 
 use glium::glutin;
 use glium::glutin::event::{Event, WindowEvent};
@@ -19,7 +20,7 @@ pub struct System {
     pub imgui: Context,
     pub platform: WinitPlatform,
     pub renderer: Renderer,
-    pub font_size: f32
+    pub font_size: f32,
 }
 
 impl System {
@@ -73,7 +74,7 @@ impl System {
             imgui: imgui_context,
             platform: platform,
             renderer: renderer,
-            font_size: font_size
+            font_size: font_size,
         }
     }
 
